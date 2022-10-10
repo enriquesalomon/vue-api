@@ -42,7 +42,7 @@ func main() {
 	}
 }
 
-// serve starts the web server
+// serve starts the web servers
 func (app *application) serve() error {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var payload struct {
