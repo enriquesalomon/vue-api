@@ -386,3 +386,54 @@ func (t *Token) AuthenticateToken(r *http.Request) (*User, error) {
 
 	return user, nil
 }
+
+// Insert inserts a token into the database
+func (t *Token) Insert(token Token, u User) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	// delete any existing tokens
+	stmt := `delete from tokens where user_id = $1`
+	_, err := db.ExecContext(ctx, stmt, token.UserID)
+	if err != nil {
+		return err
+	}
+
+	// we assign the email value, just to be safe, in case it was
+	// not done in the handler that calls this function
+	token.Email = u.Email
+
+	// insert the new token
+	stmt = `insert into tokens (user_id, email, token, token_hash, created_at, updated_at, expiry
+		values ($1, $2, $3, $4, $5, $6, $7)`
+
+	_, err = db.ExecContext(ctx, stmt,
+		token.UserID,
+		token.Email,
+		token.Token,
+		token.TokenHash,
+		time.Now(),
+		time.Now(),
+		token.Expiry,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeleteByToken deletes a token, by plain text token
+func (t *Token) DeleteByToken(plainText string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	stmt := `delete from tokens where token = $1`
+
+	_, err := db.ExecContext(ctx, stmt, plainText)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
