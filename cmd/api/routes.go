@@ -89,7 +89,7 @@ func (app *application) routes() http.Handler {
 			return
 		}
 
-		user, err := app.models.User.GetOne(1)
+		user, err := app.models.User.GetOne(2)
 		if err != nil {
 			app.errorLog.Println(err)
 			return
@@ -110,6 +110,21 @@ func (app *application) routes() http.Handler {
 			Message: "success",
 			Data:    token,
 		}
+
+		app.writeJSON(w, http.StatusOK, payload)
+	})
+
+	mux.Get("/test-validate-token", func(w http.ResponseWriter, r *http.Request) {
+		tokenToValidate := r.URL.Query().Get("token")
+		valid, err := app.models.Token.ValidToken(tokenToValidate)
+		if err != nil {
+			app.errorJSON(w, err)
+			return
+		}
+
+		var payload jsonResponse
+		payload.Error = false
+		payload.Data = valid
 
 		app.writeJSON(w, http.StatusOK, payload)
 	})
