@@ -10,6 +10,8 @@ const dbTimeout = time.Second * 3
 
 var db *sql.DB
 
+// New is the function used to create an instance of the data package. It returns the type
+// Model, which embeds all of the types we want to be available to our application.
 func New(dbPool *sql.DB) Models {
 	db = dbPool
 
@@ -19,11 +21,16 @@ func New(dbPool *sql.DB) Models {
 	}
 }
 
+// Models is the type for this package. Note that any model that is included as a member
+// in this type is available to us throughout the application, anywhere that the
+// app variable is used, provided that the model is also added in the New function.
 type Models struct {
 	User  User
 	Token Token
 }
 
+// User is the stucture which holds one user from the database. Note
+// that it embeds a token type.
 type User struct {
 	ID        int       `json:"id"`
 	Email     string    `json:"email"`
@@ -35,6 +42,7 @@ type User struct {
 	Token     Token     `json:"token"`
 }
 
+// GetAll returns a slice of all users, sorted by last name
 func (u *User) GetAll() ([]*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
@@ -70,6 +78,7 @@ func (u *User) GetAll() ([]*User, error) {
 	return users, nil
 }
 
+// GetByEmail returns one user by email
 func (u *User) GetByEmail(email string) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
@@ -96,6 +105,7 @@ func (u *User) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
+// GetOne returns one user by id
 func (u *User) GetOne(id int) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
@@ -120,6 +130,47 @@ func (u *User) GetOne(id int) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+func (u *User) Update() error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	stmt := `update users set
+		email = $1,
+		first_name = $2,
+		last_name = $3,
+		updated_at = $4
+		where id = $5
+	`
+
+	_, err := db.ExecContext(ctx, stmt,
+		u.Email,
+		u.FirstName,
+		u.LastName,
+		time.Now(),
+		u.ID,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (u *User) Delete() error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	stmt := `delete from users where id = $1`
+
+	_, err := db.ExecContext(ctx, stmt, u.ID)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 type Token struct {
