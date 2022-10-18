@@ -3,8 +3,11 @@ package main
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 	"vue-api/internal/data"
+
+	"github.com/go-chi/chi/v5"
 )
 
 // jsonResponse is the type used for generic JSON responses
@@ -103,6 +106,9 @@ func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, payload)
 }
 
+// AllUsers is the handler which lists all users. Note that this
+// handler should be protected in the routes file, and require that
+// the user have a valid token
 func (app *application) AllUsers(w http.ResponseWriter, r *http.Request) {
 	var users data.User
 	all, err := users.GetAll()
@@ -120,6 +126,7 @@ func (app *application) AllUsers(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// EditUser saves a new user, or updates a user, in the database
 func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
 	var user data.User
 	err := app.readJSON(w, r, &user)
@@ -151,7 +158,7 @@ func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// if passowrd != string, update password
+		// if password != string, update password
 		if user.Password != "" {
 			err := u.ResetPassword(user.Password)
 			if err != nil {
@@ -167,4 +174,20 @@ func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = app.writeJSON(w, http.StatusAccepted, payload)
+}
+
+func (app *application) GetUser(w http.ResponseWriter, r *http.Request) {
+	userID, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	user, err := app.models.User.GetOne(userID)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	_ = app.writeJSON(w, http.StatusOK, user)
 }
