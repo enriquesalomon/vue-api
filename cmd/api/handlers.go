@@ -37,9 +37,6 @@ func (app *application) Login(w http.ResponseWriter, r *http.Request) {
 		_ = app.writeJSON(w, http.StatusBadRequest, payload)
 	}
 
-	// TODO authenticate
-	app.infoLog.Println(creds.UserName, creds.Password)
-
 	// look up the user by email
 	user, err := app.models.User.GetByEmail(creds.UserName)
 	if err != nil {
@@ -176,6 +173,7 @@ func (app *application) EditUser(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusAccepted, payload)
 }
 
+// GetUser returns one user as JSON
 func (app *application) GetUser(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -190,4 +188,29 @@ func (app *application) GetUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_ = app.writeJSON(w, http.StatusOK, user)
+}
+
+func (app *application) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	var requestPayload struct {
+		ID int `json:"id"`
+	}
+
+	err := app.readJSON(w, r, &requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	err = app.models.User.DeleteByID(requestPayload.ID)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	payload := jsonResponse{
+		Error:   false,
+		Message: "User deleted",
+	}
+
+	_ = app.writeJSON(w, http.StatusOK, payload)
 }
