@@ -470,6 +470,19 @@ func (t *Token) DeleteByToken(plainText string) error {
 	return nil
 }
 
+func (t *Token) DeleteTokensForUser(id int) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	stmt := "delete from tokens where user_id = $1"
+	_, err := db.ExecContext(ctx, stmt, id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // ValidToken makes certain that a given token is valid; in order to be valid,
 // the token must exist in the database, the associated user must exist in the database,
 // and the token must not have expired.
