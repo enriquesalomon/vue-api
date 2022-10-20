@@ -197,6 +197,7 @@ func (app *application) GetUser(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, user)
 }
 
+// DeleteUser delets a user from the users table by the id given in the supplied JSON file
 func (app *application) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		ID int `json:"id"`
@@ -222,6 +223,9 @@ func (app *application) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	_ = app.writeJSON(w, http.StatusOK, payload)
 }
 
+// LogUserOutAndSetInactive sets the user specified by the id value in the supplied JSON
+// to inactive, and deletes any tokens associated with that user id from the tokens table
+// in the database
 func (app *application) LogUserOutAndSetInactive(w http.ResponseWriter, r *http.Request) {
 	userID, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
@@ -255,4 +259,28 @@ func (app *application) LogUserOutAndSetInactive(w http.ResponseWriter, r *http.
 	}
 
 	_ = app.writeJSON(w, http.StatusAccepted, payload)
+}
+
+// ValidateToken accepts a JSON payload with a plain text token, and returns
+// true if that token is valid, or false if it is not, as a JSON response
+func (app *application) ValidateToken(w http.ResponseWriter, r *http.Request) {
+	var requestPayload struct {
+		Token string `json:"token"`
+	}
+
+	err := app.readJSON(w, r, &requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	valid := false
+	valid, _ = app.models.Token.ValidToken(requestPayload.Token)
+
+	payload := jsonResponse{
+		Error: false,
+		Data:  valid,
+	}
+
+	_ = app.writeJSON(w, http.StatusOK, payload)
 }

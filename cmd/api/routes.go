@@ -27,6 +27,8 @@ func (app *application) routes() http.Handler {
 	mux.Post("/users/login", app.Login)
 	mux.Post("/users/logout", app.Logout)
 
+	mux.Post("/validate-token", app.ValidateToken)
+
 	// all of the routes in the block below are prefixed with /admin, and also
 	// require that the user have a valid token provided in the request, since
 	// this block uses the AuthTokenMiddleware
